@@ -42,7 +42,7 @@ The plan I landed on:
 - **Background workers** doing vault re-embedding, voice memo transcription, conversation compaction, cost reporting, morning digests
 - **Atlas** — a separate self-hosted ChatGPT-style web app — running on the same box
 
-That's at minimum two models hot at all times (router + judge), plus periodic Whisper for voice, plus embedding model, plus whatever Atlas is loaded into. Combined working set sits in the 24–30GB range, but spikes during model swaps. The headroom is what keeps it from feeling slow.
+That's at minimum two models hot at all times (router + judge), plus periodic Whisper for voice, plus the embedding model, plus whatever Atlas is loaded into. Combined working set sits in the 24–30GB range, but spikes during model swaps. The headroom is what keeps it from feeling slow.
 
 The four-concurrent-agents-plus-voice scenario is exactly the workload the Studio was designed for. If you're running a Discord assistant with occasional MCP calls, a Mini is sufficient. If you're running an agentic workstation that orchestrates multiple Claude Code sessions while you talk to it, the Studio earns its capacity.
 

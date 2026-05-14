@@ -3,76 +3,62 @@ title: One large model at a time
 date: 2026-05-08
 ---
 
-The Mac Studio has 96GB of unified memory. That sounds like a lot. It is, until you start loading 70B models.
+The Mac Studio has 96GB of unified memory. That sounds like a lot. It is — until you start loading 70B models.
 
-A Llama 3.3 70B at Q4 is about 42GB on disk. In memory it's a bit more once you account for KV cache and runtime overhead. A Qwen 2.5 32B Coder is around 20GB. Plus the embedding model. Plus Whisper, occasionally. Plus the OS and the apps and the browser tabs.
+A Llama 3.3 70B at Q4 is about 42GB. A Qwen 2.5 32B Coder is around 20GB. Plus the embedding model, plus Whisper occasionally, plus the OS and the browser and everything else. Two large models hot at once means swapping into system memory, and the moment that happens, token generation drops by an order of magnitude.
 
-Two large models hot at once means swapping into system memory, and the moment that happens, token generation drops by an order of magnitude.
+So Atlas has a constraint: one large model at a time. The model manager exists to enforce it. This post is about what it does — and the long stretch where it didn't actually do it.
 
-So Atlas has a constraint: one large model at a time. The model manager exists to enforce it without making the UX terrible.
+## What the manager is for
 
-## The shape of the problem
+The manager tracks which model is currently loaded, swaps to a different one when needed, and tells the UI what's happening during the swap. There's a `ModelSelector` in the chat UI and a `ModelsPanel` in settings; behind them, the manager owns the actual load/unload against Ollama so two parts of the app can't fight over the GPU.
 
-Without a manager, what happens is:
+That was the design from Stage 3. The selector existed, the panel existed, the manager existed. Clicking a model in the UI called `/models/load`, and `/models/load` correctly swapped what Ollama had resident.
 
-1. User starts a conversation with the 32B
-2. User clicks "switch to 70B" mid-chat
-3. App naively unloads the 32B and loads the 70B
-4. Meanwhile, two other request queues are still trying to use the 32B
-5. Errors everywhere, or — worse — both models partially loaded, swapping like crazy, every response taking 90 seconds
+And then the next message in the conversation used the wrong model anyway.
 
-The naive approach assumes loading is atomic. It isn't. Ollama can hold multiple models warm if memory allows, and it can also evict them under pressure in ways that are hard to predict. You need a layer above Ollama that knows which models count as "large" and serializes access.
+## The bug: a manager that didn't manage
 
-## What the manager does
+This one took a while to see, because every individual piece was working.
 
-The model manager has three jobs:
+Clicking "switch to the 70B" really did load the 70B. `/models/load` did its job. The manager's record of "currently loaded" updated. If you checked, the 70B was resident.
 
-1. Track which large model is currently loaded
-2. Queue requests during a model swap
-3. Tell the UI what's happening
+But the chat request that came next didn't *say* which model it wanted. The request body had no `model` field. So the chat handler did what it had always done — fell back to `config.ollama.default_model`. The user had switched models; the conversation hadn't heard about it.
 
-There's a registry of models, each tagged as `small` (under 8GB) or `large` (over 8GB). Small models can be loaded freely — multiple at a time, no contention. Large models go through the manager.
+Worse: the manager had methods for exactly this — `remember()` to record the user's choice, `remembered()` to read it back. They existed. They were just *dead code* in the chat path. Nothing called them. The manager could remember a preference and nobody ever asked it to.
 
-When a request comes in for a large model:
+So the picture was: a model selector that loaded models, a manager that could track preferences, and a chat path that ignored both and used the config default. Three correct components, zero correct behavior, because the `model` field never flowed from the click to the request.
 
-- If that model is already loaded, the request proceeds immediately.
-- If a different large model is loaded, the request goes into a queue and the manager kicks off a swap.
-- If no large model is loaded, it loads the requested one and proceeds.
+## The fix: thread the field all the way through
 
-Swaps look like: unload the current large model, wait for confirmation, load the new one, wait for the first token to confirm warmup, drain the queue.
+The fix wasn't clever, it was just *complete* — wire the `model` field from one end to the other and give it a real resolution order.
 
-## What goes wrong
+The frontend lifts the selected model up into the chat root component, persists it to `localStorage` so it survives a reload, and forwards it on every request. The chat request gains an optional `model` field. And the backend resolves which model to actually use with an explicit precedence:
 
-Three things, in order of how often they happen.
+```
+payload model  →  remembered model  →  currently loaded  →  config default
+```
 
-**Requests pile up during a swap.** If five tabs are mid-conversation when I switch from 32B to 70B, those five conversations all want the new model the moment it's ready. The queue handles ordering, but if there are too many, the first conversation back online waits 8 seconds, and the fifth waits 30. Not great.
+The request wins if it specified something. Failing that, the manager's *remembered* choice. Failing that, whatever's already loaded. Failing all of it, the config default — which is now genuinely a last resort instead of the silent first answer.
 
-The fix was a per-conversation token cap during drain — each queued conversation gets up to N tokens of generation before yielding to the next one. The drain becomes round-robin instead of FIFO. No conversation waits forever for one long response to finish.
-
-**Ollama gets confused about what's loaded.** Ollama has its own keep-alive logic, and sometimes it evicts a model the manager thinks is still warm. The manager catches this by checking before each request — if the model isn't actually loaded, force a load and continue. Costs a few extra seconds occasionally, but prevents the "I asked the 32B and got the 8B's response style" failure mode.
-
-**Cold loads are slow.** First load of a 70B model is 12–18 seconds. The first token after that takes another 4–6 seconds because the prompt has to be processed. The UI shows both stages — "loading model" then "processing" — so the user knows what's happening.
+With the field flowing, the manager's other methods finally get called: `swap()` runs before the stream starts if a model change is needed, `remember()` runs after a successful response so the choice sticks. The dead code came alive because the data finally reached it.
 
 ## The UX cost
 
-This is the part I want to be honest about: model switching in Atlas is not free.
+Model switching in Atlas is not free, and I want to be honest about that.
 
-ChatGPT can switch from GPT-4 to GPT-4o instantaneously because both are running on infrastructure with effectively infinite memory. My machine cannot. When I click "switch to 70B" mid-conversation, there is a visible 6–12 second pause. The UI is honest about it — a banner appears, a spinner runs, the timestamp on the next message shows the delay.
+ChatGPT switches models instantly because it runs on infrastructure with effectively infinite memory. My machine does not. When the manager swaps from the 32B to the 70B, there's a real, visible pause — the old model unloads, the new one loads, the first token takes a beat longer because the prompt has to be processed cold. The UI shows the swap happening rather than hiding it behind a spinner that pretends nothing's wrong.
 
-There are two reasons I keep it this way instead of, say, locking myself to one model.
-
-First, the comparison is genuinely useful. When I want to know whether the 70B is actually better than the 32B on a specific prompt, I switch and resend. The friction is acceptable because the answer is informative.
-
-Second, the swap is honest. A faster, more polished swap would hide a real constraint of the machine. I'd rather see the seam.
+I keep it this way on purpose. The comparison is genuinely useful — when I want to know whether the 70B beats the 32B on a specific prompt, I switch and resend, and the friction is worth the answer. And the swap being *visible* is honest: it's a real constraint of the machine, and a slicker swap would just be hiding the seam.
 
 ## What I'd change
 
-The thing I'd build next is **predictive preloading**. If I'm typing a long message and the manager can guess from the conversation history that I'll want a particular model, it could start loading before I hit send. Most of the time the prediction would be wrong and it'd waste a load. But for the cases where it's right, the swap is invisible.
+The thing I'd build is a louder contract between the frontend's idea of "the current model" and the backend's. The whole bug was a quiet disagreement — the UI thought one thing, the chat path assumed another, and nothing reconciled them until I went looking. I'd want the resolved model echoed back on every response and rendered in the UI, so a divergence is visible immediately instead of being something you only catch when an answer feels off.
 
-I haven't built it because the heuristics are tricky and the wrong prediction wastes 15 seconds. The current explicit-switch UX is honest and predictable. Worth more than a clever load that gets it wrong half the time.
+The structured `chat.model_resolved` log was the first step toward that. Putting it on the screen is the next one.
 
 ## Why this isn't a Jarvis problem
 
-Jarvis runs a fixed model set — Qwen3 8B router (small, always hot), Qwen 2.5 32B judge (large, mostly hot during overnight runs), Claude over the CLI (no local memory cost). Atlas is the place where model choice is dynamic.
+Jarvis runs a fixed model set — a small router model always hot, a 32B judge mostly hot during overnight runs, Claude over the CLI with no local memory cost. The model choice is static; there's nothing to manage.
 
-Two services on the same machine, same models, different access patterns. The manager is what lets them coexist without fighting over the GPU.
+Atlas is the place where model choice is dynamic, which is the place where it can quietly go wrong. Same machine, same models, different access pattern — and the access pattern is what made the manager necessary, and what made its silence so easy to miss.
