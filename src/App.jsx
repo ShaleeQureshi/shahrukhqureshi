@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
 import Home from './pages/Home/Home';
 import About from './pages/About/About';
@@ -7,6 +8,16 @@ import Projects from './pages/Projects/Projects';
 import ProjectDetail from './pages/Projects/ProjectDetail';
 import Post from './pages/Projects/Post';
 import Server from './pages/Projects/Server';
+
+// Resets scroll position to the top on every route change, so opening a new
+// page or blog post starts at the top instead of inheriting the prior scroll.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 function NotFound() {
   return (
@@ -20,6 +31,7 @@ function NotFound() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
