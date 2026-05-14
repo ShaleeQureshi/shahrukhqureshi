@@ -2,6 +2,7 @@
   "jarvis": {
     "name": "jarvis",
     "title": "Jarvis",
+    "category": "server",
     "subtitle": "ai server",
     "description": "Personal AI orchestrator running on a Mac Studio. Discord bot + judge loop + overnight Claude Code runs. Notes on the build.",
     "tags": ["mac-studio", "ollama", "claude-code", "discord"],
@@ -42,6 +43,7 @@
   "atlas": {
     "name": "atlas",
     "title": "Atlas",
+    "category": "server",
     "subtitle": "self-hosted chatgpt",
     "description": "A web app that puts my local models, my vault, and tool calls behind a single chat interface. Same machine as Jarvis, different shape.",
     "tags": ["next-js", "fastapi", "ollama", "supabase"],

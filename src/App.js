@@ -6,6 +6,7 @@ import Contact from './pages/Contact/Contact';
 import Projects from './pages/Projects/Projects';
 import ProjectDetail from './pages/Projects/ProjectDetail';
 import Post from './pages/Projects/Post';
+import Server from './pages/Projects/Server';
 
 function NotFound() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:project" element={<ProjectDetail />} />
         <Route path="/projects/:project/:slug" element={<Post />} />
+        <Route path="/server" element={<Server />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

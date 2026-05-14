@@ -2,12 +2,20 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Projects.css';
 
-const ASCII = String.raw`
+export const PROJECTS_ASCII = String.raw`
   ____   ____   ___    _ _____ ____ _____ ____
  |  _ \ |  _ \ / _ \  | | ____/ ___|_   _/ ___|
  | |_) || |_) | | | |_| |  _|| |     | | \___ \
  |  __/ |  _ <| |_| |_  _|___| |___  | |  ___) |
  |_|    |_| \_\\___/  |_|_____\____| |_| |____/
+`;
+
+export const SERVER_ASCII = String.raw`
+  ____  _____ ______     _______ ____
+ / ___|| ____|  _ \ \   / / ____|  _ \
+ \___ \|  _| | |_) \ \ / /|  _| | |_) |
+  ___) | |___|  _ < \ V / | |___|  _ <
+ |____/|_____|_| \_\ \_/  |_____|_| \_\
 `;
 
 export function TopBar({ active, path = '~/projects' }) {
@@ -21,13 +29,20 @@ export function TopBar({ active, path = '~/projects' }) {
         <Link to="/" className={active === 'home' ? 'active' : ''}>home</Link>
         <Link to="/about" className={active === 'about' ? 'active' : ''}>about</Link>
         <Link to="/projects" className={active === 'projects' ? 'active' : ''}>work</Link>
+        <Link to="/server" className={active === 'server' ? 'active' : ''}>server</Link>
         <Link to="/contact" className={active === 'contact' ? 'active' : ''}>contact</Link>
       </nav>
     </div>
   );
 }
 
-export default function Projects() {
+export default function Projects({
+  category,
+  cmd = 'cat ./projects',
+  active = 'projects',
+  ascii = PROJECTS_ASCII,
+  path = '~/projects',
+}) {
   const [manifest, setManifest] = useState(null);
   const [error, setError] = useState(null);
 
@@ -41,14 +56,20 @@ export default function Projects() {
       .catch((e) => setError(e.message));
   }, []);
 
+  const entries = manifest
+    ? Object.entries(manifest).filter(
+        ([, project]) => !category || project.category === category
+      )
+    : [];
+
   return (
     <div className="terminal">
-      <TopBar active="projects" />
-      <pre className="ascii">{ASCII}</pre>
+      <TopBar active={active} path={path} />
+      <pre className="ascii">{ascii}</pre>
 
       <div className="prompt-line">
         <span className="p">$</span>
-        <span>cat ./projects</span>
+        <span>{cmd}</span>
       </div>
 
       {error && (
@@ -59,9 +80,13 @@ export default function Projects() {
         <div className="loading">loading<span className="cursor" /></div>
       )}
 
-      {manifest && (
+      {manifest && entries.length === 0 && (
+        <div className="loading">no projects found</div>
+      )}
+
+      {manifest && entries.length > 0 && (
         <div className="cards">
-          {Object.entries(manifest).map(([key, project]) => (
+          {entries.map(([key, project]) => (
             <Link key={key} to={`/projects/${key}`} className="card">
               <div className="name" style={{ color: project.accent }}>
                 <span className="arrow">▸</span>

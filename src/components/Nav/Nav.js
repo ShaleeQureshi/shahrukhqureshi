@@ -14,6 +14,9 @@ export default function Nav() {
       <NavLink to="/projects" className={({ isActive }) => (isActive ? 'active' : '')}>
         work
       </NavLink>
+      <NavLink to="/server" className={({ isActive }) => (isActive ? 'active' : '')}>
+        server
+      </NavLink>
       <NavLink to="/contact" className={({ isActive }) => (isActive ? 'active' : '')}>
         contact
       </NavLink>
