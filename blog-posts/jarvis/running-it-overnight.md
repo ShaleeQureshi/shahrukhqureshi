@@ -1,9 +1,9 @@
 ---
 title: Running it overnight
-date: 2026-05-04
+date: 2026-05-06
 ---
 
-The whole point of Jarvis was to have something work while I sleep. Getting from "the orchestrator runs once" to "I can queue five projects, go to bed, and trust the results in the morning" was a stage of its own.
+The whole point of Jarvis was to have something work while I sleep. Getting from "the orchestrator runs once" to "I can queue a few projects, go to bed, and trust the results in the morning" was a stage of its own.
 
 This is what went into making it actually unattended.
 
@@ -11,100 +11,89 @@ This is what went into making it actually unattended.
 
 What I want from an overnight run:
 
-1. I queue 3–5 projects before going to bed.
-2. The orchestrator works through them sequentially or with controlled parallelism.
+1. I queue a few projects before going to bed.
+2. The orchestrator works through them with controlled parallelism.
 3. Resource limits keep the machine from melting.
-4. Daily API budget caps keep it from burning through my Max plan quota.
+4. A daily API budget cap keeps it from burning through my quota.
 5. If anything crashes, the next run still happens.
-6. At 6am, I get a single Discord message summarizing what got done.
+6. In the morning, I get a single Discord message summarizing what got done.
 
 Everything below is what each of those bullets actually required.
 
 ## The queue
 
-Behind the scenes the queue is a SQLite table with priority, project name, timestamps, and status. `jarvis run myproject` doesn't execute anything anymore — it just enqueues. A separate runner process consumes the queue.
+The queue is a SQLite table — priority, project name, timestamps, status. `jarvis run myproject` doesn't execute anything anymore; it enqueues. A separate runner process consumes the queue. (`--now` keeps the old synchronous path when I want to watch a single run live.)
 
-This sounds like minor refactoring. It isn't. The split lets me queue runs at any time, from anywhere, without the bot needing to be alive. "Queue before bed, start the bot, sleep" only works if these are separate.
+This sounds like minor refactoring. It isn't. The split lets me queue runs at any time, from anywhere, without the runner needing to be alive yet. "Queue before bed, let the runner pick them up, sleep" only works if enqueue and execute are separate.
 
-Priority matters more than you'd think. If I queue five projects and two are time-sensitive, those two should finish first. The runner picks by `(priority DESC, created_at ASC)` and that's it. No clever scheduling, no project weights, no fairness — just a priority field I can set per project in its config.
+Dequeue is atomic — the queue grabs its next item inside a `BEGIN IMMEDIATE` transaction, so two consumers can't pick the same run. Ordering is priority first, then FIFO within a priority. No clever scheduling, no project weights, no fairness — just a priority field I can set per project. Projects are validated at enqueue time, not at execute time, so a typo'd project name fails immediately instead of at 3am.
 
 ## The resource gate
 
-Before starting any run, the runner checks:
+Before starting any run, the runner checks, cheapest check first so it can short-circuit:
 
-- Available memory (refuse to start if under 8GB free)
-- Concurrent run count (cap at 2 by default, configurable)
-- Daily Claude API invocation budget (refuse to start if today's count is at the cap)
-- Disk space in `data/runs/` (warn at 5GB, hard-block at 20GB)
+- Concurrent run count (capped, configurable)
+- Daily Claude API invocation budget
+- Free memory — refuse to start a new run under ~4GB free
+- Free disk — refuse under ~2GB free
 
-These checks happen at start. Once a run is in flight, the gate doesn't kill it — if memory drops mid-run, the queue pauses new starts but the in-flight run keeps going. Killing live processes is how you lose data.
+These checks happen *at start*. Once a run is in flight, the gate doesn't kill it — killing a live process is how you lose data. There's also a separate disk warning: when `data/runs/` grows past 5GB, the runner posts a throttled heads-up so the artifact directory doesn't quietly fill the disk.
 
-The budget cap is the most important one. It's a per-day counter of Claude CLI invocations that survives restarts. Default is conservative (30–40 per day). When I want to burn through more work on a specific night, I run `jarvis budget override 100` and it lifts the cap for 24 hours. The override is a deliberate friction — typing the number forces me to think about it.
+The budget cap is the most important one. It's a per-day counter of Claude CLI invocations that survives restarts. The default is conservative. When I want to push more work on a specific night, `jarvis budget override` lifts the cap for 24 hours — and typing the number is deliberate friction, a moment to actually think about it.
 
 ## Concurrent runs
 
-The default is 2. I tried 4. The Mac Studio can technically run 4 Claude Code sessions in parallel, but:
+The default is 2. The Mac Studio can technically run more Claude Code sessions in parallel, but with the judge model also resident, memory pressure climbs, parallel test runners contend on the SSD, and you give back most of the time you thought you gained. Two is the sweet spot — and it matches how I think about projects anyway. I'd rather two get all the way through than four limp along.
 
-- Memory pressure goes from "comfortable" to "ehh" with the judge model loaded
-- Discord notifications start arriving in storms, which is annoying
-- Test runners contend on the SSD enough that you lose any time you gained
+## Memory monitoring
 
-2 is the sweet spot. It also matches how I think about projects — I'd rather two get all the way through than four limp along.
+The resource gate is a *start-time* check. It says nothing about what happens once runs are in flight. So there's a separate memory monitor: a 60-second `psutil` poll that warns when free memory drops past ~2GB and panic-pauses the queue at ~1GB. Panic-pause stops *new* starts; in-flight runs keep going. Resuming is manual — if the machine got that tight, I want to know why before it picks back up.
 
 ## Notification coalescing
 
-The first overnight run produced 47 Discord messages between 1am and 6am. Every iteration of every run sent a status update. I woke up to a wall of text.
+The first overnight run taught me that parallel runs finish in bursts, and every iteration of every run wanted to post a status update. I woke up to a wall of text.
 
-The fix was a 5-second buffer. When a run completes, the notification is held for 5 seconds before posting. If another completion arrives in that window, they're combined into one message. The bursty completion pattern of parallel runs gets smoothed into 2–3 morning notifications instead of 47.
+The fix is a 5-second coalescing window — the same batching pattern the vault watcher already used for filesystem events. When a run completes, its notification is held briefly; if another completion lands in that window, they merge into one message. The bursty completion pattern gets smoothed into a couple of morning notifications instead of a scroll.
 
-A 30-second buffer would coalesce more, but felt too slow when I was watching live. 5 seconds was a good compromise.
+A longer window would coalesce more but feels sluggish when I'm watching live. 5 seconds was the compromise.
 
 ## Crash recovery
 
-The orchestrator can crash. The Mac can reboot. macOS can decide to update at 3am. Whatever the cause, on startup the runner does one thing:
+The orchestrator can crash. The Mac can reboot. macOS can decide to update at 3am. Whatever the cause, on startup the runner does one thing: it scans for runs still marked `running` whose process is no longer alive, marks each one `failed`, and posts a notification. Queued runs are untouched — they just get picked up. The orphaned worktrees stay where they are so I can inspect them in the morning; cleanup is manual.
 
-```python
-# any 'running' rows whose process is dead get marked failed
-SELECT id, pid FROM runs WHERE status = 'running';
-# for each, check if pid is alive; if not, mark failed
-```
-
-The orphaned worktrees stay where they are. I can inspect them in the morning. No automatic cleanup — that's manual via `jarvis runs cleanup`.
-
-I deliberately did not build resumption. If a run crashes mid-iteration, the worktree state is unknown, the judge may have already evaluated something I don't have a record of, and Claude Code may have left partial changes. Trying to resume is more dangerous than re-queueing. Mark it failed, log the reason, let me decide.
+I deliberately did not build resumption. If a run crashes mid-iteration, the worktree state is unknown, the judge may have evaluated something there's no record of, and Claude Code may have left partial changes. Resuming from that is more dangerous than re-queueing. Mark it failed, log the reason, let me decide.
 
 ## Claude CLI timeouts
 
-The other failure mode was Claude CLI hanging. Sometimes a session just stops producing output — the process is alive, but it's not doing anything useful. The wallclock cap eventually kills it, but I was seeing the same project hang twice in a row before the next one started.
+The other failure mode was the `claude` CLI hanging — the process alive but no longer producing output. The wallclock cap eventually kills it, but I was seeing the same project hang twice in a row before the queue moved on.
 
-The fix was tracking consecutive timeouts per run. After 2 consecutive Claude CLI timeouts in the same run, the run is marked `blocked` with reason `repeated_claude_timeouts`. No more retries. The queue moves on.
+The fix was tracking *consecutive* timeouts per run. After two consecutive Claude CLI timeouts in the same run, the run is marked `blocked` with reason `repeated_claude_timeouts` and the queue moves on. No more retries on a run that's clearly stuck.
 
-This caught a real bug — one of my projects had a prompt that consistently sent Claude into an infinite tool-calling loop. Without the timeout tracking, it would have eaten an entire night's budget on one project.
+This caught a real problem — a project whose prompt sent Claude into a tool-calling loop. Without consecutive-timeout tracking, it would have eaten a whole night's budget on one project.
 
 ## The morning summary
 
-A worker fires at 6am every day. It pulls all runs from the last 12 hours and posts a single Discord message:
+A worker fires at 6am. It pulls the overnight runs and posts a single Discord message — something like:
 
 ```
-Overnight summary — 5 runs
+Overnight summary — 4 runs
 
-✓ laurier-flow (3 iters, 14m)
-✓ atlas (5 iters, 28m) 
-✗ jarvis (blocked: repeated_claude_timeouts)
-✓ northhacks (2 iters, 9m)
-✗ astar-visualizer (failed acceptance, 8 iters)
+✓ project-a (3 iters, 14m)
+✓ project-b (5 iters, 28m)
+✗ project-c (blocked: repeated_claude_timeouts)
+✓ project-d (2 iters, 9m)
 
-Costs: 23 Claude invocations, 0/40 budget remaining
+Costs: 23 Claude invocations
 ```
 
-This and the regular daily digest are deliberately separate. Run summary is "what the orchestrator did." Daily digest is "everything about today" — runs plus calendar plus vault changes plus intakes. Different channels, different focus. I considered merging them after a week. Didn't.
+If the overnight window was empty, it skips the post entirely — no "nothing happened" message. It tracks a watermark so it doesn't double-report. And it's deliberately separate from the daily digest: the run summary is "what the orchestrator did," the digest is "everything about today." Different focus, different channel. I considered merging them after a week. Didn't.
 
-## What the first real overnight test was like
+## What the first acceptance run actually looked like
 
-I queued 3 projects. Two had decent acceptance criteria. The third had vague criteria — "tests should pass" — which I knew was a problem and wanted to see how the system handled it.
+The Stage 5 acceptance test ran three toy projects against real Claude under `max_concurrent=2`. End state: all three completed, 2:17 wallclock.
 
-Morning summary: 2 passes, 1 in 9 iterations (yes — over the iteration cap, the loop should have stopped it, that was a bug), 1 actual cleanup needed. The 9-iteration run was the one with vague acceptance criteria. The judge kept finding new things to complain about because nothing was definitionally "done."
+But that clean number is the *second* run. The first attempt surfaced three bugs in a row. One was a bad test fixture — a toy project's requirements file was missing its acceptance-criteria header, so there was nothing for the judge to grade against. The other two were real: `execute_run` was allocating a second run row for queue-started runs, and the pre-loop setup code had no error handler, so a setup failure left a row stuck at `running` and wedged the resource gate.
 
-Fixed the iteration cap enforcement that night. Tightened the acceptance criteria for the third project the next morning. The system worked the way it should have on the second overnight test.
+Fixing those is its own story. The point here is that "queue three projects and walk away" only became trustworthy *after* the acceptance test broke it three different ways first. That's what the test was for.
 
-Going to sleep and waking up to a Discord message with a list of green checkmarks is what makes this whole thing worth building.
+Going to sleep and waking up to a Discord message with a list of green checkmarks is what makes this whole thing worth building. Getting there meant first making it safe to be wrong.

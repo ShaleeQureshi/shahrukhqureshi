@@ -2,34 +2,65 @@
   "jarvis": {
     "name": "jarvis",
     "title": "Jarvis",
+    "category": "server",
     "subtitle": "ai server",
     "description": "Personal AI orchestrator running on a Mac Studio. Discord bot + judge loop + overnight Claude Code runs. Notes on the build.",
     "tags": ["mac-studio", "ollama", "claude-code", "discord"],
     "accent": "#f0883e",
     "posts": [
       {
-        "slug": "rag-over-personal-vault",
-        "title": "RAG over a personal vault",
-        "date": "2026-05-06",
-        "summary": "BGE embeddings, ChromaDB, and a privacy tag system that keeps personal notes off the network."
+        "slug": "ghost-os-integration",
+        "title": "Giving Jarvis a screen — Ghost OS",
+        "date": "2026-05-08",
+        "summary": "Wiring in macOS GUI automation as an MCP tool — visual verification, a wiki auditor, recipes — while keeping it strictly optional and serialized on one screen."
+      },
+      {
+        "slug": "mcp-and-ingest",
+        "title": "Reaching outside the box — MCP and ingest",
+        "date": "2026-05-07",
+        "summary": "Delegating the brain's ingest workflow to a Claude Code session, wiring user-scoped MCP tools, and the two routing regressions that followed."
       },
       {
         "slug": "running-it-overnight",
         "title": "Running it overnight",
+        "date": "2026-05-06",
+        "summary": "Queue, resource gates, memory monitoring, crash recovery, notification coalescing — and the three bugs the acceptance test surfaced first."
+      },
+      {
+        "slug": "the-worker-framework",
+        "title": "The worker framework",
+        "date": "2026-05-05",
+        "summary": "A supervisor with exponential backoff, two watchdog-based watchers, four clock-driven workers, and the Whisper config that lied about Apple Silicon."
+      },
+      {
+        "slug": "the-discord-bot",
+        "title": "The Discord bot",
         "date": "2026-05-04",
-        "summary": "Queue, resource gates, crash recovery, and the 47-Discord-message disaster that taught me to coalesce notifications."
+        "summary": "Channel-aware routing, the five paths a message can take, the privacy gate, and the source footer that tells you where every answer came from."
+      },
+      {
+        "slug": "rag-over-personal-vault",
+        "title": "RAG over a personal vault",
+        "date": "2026-05-03",
+        "summary": "BGE embeddings, ChromaDB, paragraph-boundary chunking, and a privacy-tag filter that keeps personal notes off the network."
       },
       {
         "slug": "the-judge-loop",
         "title": "The judge loop",
         "date": "2026-05-02",
-        "summary": "A local Qwen 2.5 32B reads Claude Code's diffs and decides whether to accept them. The bugs that broke it twice."
+        "summary": "A local Qwen 2.5 32B reads Claude Code's diffs and decides whether to accept them. The bugs that broke it twice, plus the loop that wouldn't converge."
+      },
+      {
+        "slug": "building-the-orchestrator",
+        "title": "Building the orchestrator",
+        "date": "2026-05-01",
+        "summary": "Worktrees, the test runner, the iteration loop — and the duplicate-run-row bug that lived at the seam between the CLI and the queue."
       },
       {
         "slug": "what-jarvis-is",
         "title": "What Jarvis actually is",
         "date": "2026-04-30",
-        "summary": "The architecture in one paragraph, then the parts that actually mattered. Five routing paths, six background workers."
+        "summary": "The architecture in one paragraph, then the parts that actually mattered. A local router, five paths, six background workers."
       },
       {
         "slug": "why-the-mac-studio",
@@ -42,11 +73,18 @@
   "atlas": {
     "name": "atlas",
     "title": "Atlas",
+    "category": "server",
     "subtitle": "self-hosted chatgpt",
     "description": "A web app that puts my local models, my vault, and tool calls behind a single chat interface. Same machine as Jarvis, different shape.",
     "tags": ["next-js", "fastapi", "ollama", "supabase"],
     "accent": "#d2a8ff",
     "posts": [
+      {
+        "slug": "the-judge-feedback-loop",
+        "title": "Watching the judge loop fail",
+        "date": "2026-05-11",
+        "summary": "Atlas was built by the orchestrator's judge loop. Every way it failed — context overflow, hallucinated evidence, suppressed test names, no memory — was about inputs, not reasoning."
+      },
       {
         "slug": "tunnel-and-auth",
         "title": "Tunneling and auth for a one-person app",
@@ -54,10 +92,22 @@
         "summary": "Cloudflare Tunnel + Supabase magic links. Why this is overkill for one user and why I did it anyway."
       },
       {
+        "slug": "tools-and-images",
+        "title": "Tools and images, without the leaks",
+        "date": "2026-05-09",
+        "summary": "Weather, places, and web search with mock fallbacks when keys are absent; image upload that keeps the bytes on the machine by construction."
+      },
+      {
         "slug": "model-manager",
         "title": "One large model at a time",
         "date": "2026-05-08",
-        "summary": "96GB sounds like a lot until you try loading two 70B models. The serializer that makes model switching honest."
+        "summary": "96GB sounds like a lot until you load two 70B models. The model manager — and the long stretch where it didn't actually manage anything."
+      },
+      {
+        "slug": "the-router-and-gemini",
+        "title": "The router and the Gemini path",
+        "date": "2026-05-06",
+        "summary": "A pattern-matching router, a quota-tracked Gemini client, and the missing load_dotenv() that made the Gemini path silently not exist."
       },
       {
         "slug": "hello-atlas",
