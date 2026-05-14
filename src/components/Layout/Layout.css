@@ -1,0 +1,22 @@
+.site-main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #111;
+  line-height: 1.6;
+}
+
+.site-main h1 {
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.site-main p {
+  color: #374151;
+}
+
+.site-main a {
+  color: #2563eb;
+}

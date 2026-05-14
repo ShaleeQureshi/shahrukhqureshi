@@ -1,0 +1,70 @@
+{
+  "jarvis": {
+    "name": "jarvis",
+    "title": "Jarvis",
+    "subtitle": "ai server",
+    "description": "Personal AI orchestrator running on a Mac Studio. Discord bot + judge loop + overnight Claude Code runs. Notes on the build.",
+    "tags": ["mac-studio", "ollama", "claude-code", "discord"],
+    "accent": "#f0883e",
+    "posts": [
+      {
+        "slug": "rag-over-personal-vault",
+        "title": "RAG over a personal vault",
+        "date": "2026-05-06",
+        "summary": "BGE embeddings, ChromaDB, and a privacy tag system that keeps personal notes off the network."
+      },
+      {
+        "slug": "running-it-overnight",
+        "title": "Running it overnight",
+        "date": "2026-05-04",
+        "summary": "Queue, resource gates, crash recovery, and the 47-Discord-message disaster that taught me to coalesce notifications."
+      },
+      {
+        "slug": "the-judge-loop",
+        "title": "The judge loop",
+        "date": "2026-05-02",
+        "summary": "A local Qwen 2.5 32B reads Claude Code's diffs and decides whether to accept them. The bugs that broke it twice."
+      },
+      {
+        "slug": "what-jarvis-is",
+        "title": "What Jarvis actually is",
+        "date": "2026-04-30",
+        "summary": "The architecture in one paragraph, then the parts that actually mattered. Five routing paths, six background workers."
+      },
+      {
+        "slug": "why-the-mac-studio",
+        "title": "Why the Mac Studio",
+        "date": "2026-04-22",
+        "summary": "I almost returned the M3 Ultra. Here's what changed my mind about keeping a 96GB unified memory machine."
+      }
+    ]
+  },
+  "atlas": {
+    "name": "atlas",
+    "title": "Atlas",
+    "subtitle": "self-hosted chatgpt",
+    "description": "A web app that puts my local models, my vault, and tool calls behind a single chat interface. Same machine as Jarvis, different shape.",
+    "tags": ["next-js", "fastapi", "ollama", "supabase"],
+    "accent": "#d2a8ff",
+    "posts": [
+      {
+        "slug": "tunnel-and-auth",
+        "title": "Tunneling and auth for a one-person app",
+        "date": "2026-05-10",
+        "summary": "Cloudflare Tunnel + Supabase magic links. Why this is overkill for one user and why I did it anyway."
+      },
+      {
+        "slug": "model-manager",
+        "title": "One large model at a time",
+        "date": "2026-05-08",
+        "summary": "96GB sounds like a lot until you try loading two 70B models. The serializer that makes model switching honest."
+      },
+      {
+        "slug": "hello-atlas",
+        "title": "Hello, Atlas",
+        "date": "2026-05-05",
+        "summary": "Why a self-hosted ChatGPT made sense on top of an existing AI server, and why it's a separate codebase from Jarvis."
+      }
+    ]
+  }
+}
