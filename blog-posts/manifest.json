@@ -116,5 +116,40 @@
         "summary": "Why a self-hosted ChatGPT made sense on top of an existing AI server, and why it's a separate codebase from Jarvis."
       }
     ]
+  },
+  "glasses": {
+    "name": "glasses",
+    "title": "Glasses",
+    "category": "glasses",
+    "subtitle": "jarvis on my face",
+    "description": "Ray-Ban Meta Gen 2 glasses talking to the Mac Studio through a thin iOS companion app. Push-to-talk voice, photo-as-context, sub-3s warm latency. Notes on the build.",
+    "tags": ["ray-ban-meta", "swift", "ios", "fastapi", "claude", "whisperkit"],
+    "accent": "#7ee787",
+    "posts": [
+      {
+        "slug": "photos-as-context",
+        "title": "Photos as context",
+        "date": "2026-05-24",
+        "summary": "A 60-second window, latest-photo-only, and a debug flag that caught two bugs in an hour. How the glasses' camera becomes part of the prompt."
+      },
+      {
+        "slug": "cutting-25-seconds-to-2",
+        "title": "Cutting 25 seconds to 2",
+        "date": "2026-05-23",
+        "summary": "Five phases of latency work — persistent Claude subprocesses, sentence-buffered TTS, WhisperKit on the phone. A 10x drop without changing models."
+      },
+      {
+        "slug": "the-phone-in-the-middle",
+        "title": "The phone in the middle",
+        "date": "2026-05-22",
+        "summary": "Why the iPhone has to be in the loop, why I picked HTTP+NDJSON over WebSocket, and the firmware bug that cost a morning."
+      },
+      {
+        "slug": "hello-glasses",
+        "title": "Putting Jarvis in my Ray-Bans",
+        "date": "2026-05-21",
+        "summary": "Skipping Meta AI entirely, the three-hop architecture (glasses → iPhone → Mac), and the constraint that the DAT SDK forces a companion phone app."
+      }
+    ]
   }
 }

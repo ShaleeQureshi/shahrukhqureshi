@@ -18,6 +18,14 @@ export const SERVER_ASCII = String.raw`
  |____/|_____|_| \_\ \_/  |_____|_| \_\
 `;
 
+export const GLASSES_ASCII = String.raw`
+   ____ _        _    ____ ____  _____ ____
+  / ___| |      / \  / ___/ ___|| ____/ ___|
+ | |  _| |     / _ \ \___ \___ \|  _| \___ \
+ | |_| | |___ / ___ \ ___) |__) | |___ ___) |
+  \____|_____/_/   \_\____/____/|_____|____/
+`;
+
 export function TopBar({ active, path = '~/projects' }) {
   return (
     <div className="topbar">
@@ -30,6 +38,7 @@ export function TopBar({ active, path = '~/projects' }) {
         <Link to="/about" className={active === 'about' ? 'active' : ''}>about</Link>
         <Link to="/projects" className={active === 'projects' ? 'active' : ''}>work</Link>
         <Link to="/server" className={active === 'server' ? 'active' : ''}>server</Link>
+        <Link to="/glasses" className={active === 'glasses' ? 'active' : ''}>glasses</Link>
         <Link to="/contact" className={active === 'contact' ? 'active' : ''}>contact</Link>
       </nav>
     </div>
