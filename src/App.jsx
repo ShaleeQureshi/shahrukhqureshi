@@ -8,6 +8,7 @@ import Projects from './pages/Projects/Projects';
 import ProjectDetail from './pages/Projects/ProjectDetail';
 import Post from './pages/Projects/Post';
 import Server from './pages/Projects/Server';
+import Glasses from './pages/Projects/Glasses';
 
 // Resets scroll position to the top on every route change, so opening a new
 // page or blog post starts at the top instead of inheriting the prior scroll.
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/projects/:project" element={<ProjectDetail />} />
         <Route path="/projects/:project/:slug" element={<Post />} />
         <Route path="/server" element={<Server />} />
+        <Route path="/glasses" element={<Glasses />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
