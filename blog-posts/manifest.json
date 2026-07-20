@@ -5,7 +5,12 @@
     "category": "server",
     "subtitle": "ai server",
     "description": "Personal AI orchestrator running on a Mac Studio. Discord bot + judge loop + overnight Claude Code runs. Notes on the build.",
-    "tags": ["mac-studio", "ollama", "claude-code", "discord"],
+    "tags": [
+      "mac-studio",
+      "ollama",
+      "claude-code",
+      "discord"
+    ],
     "accent": "#f0883e",
     "posts": [
       {
@@ -76,7 +81,12 @@
     "category": "server",
     "subtitle": "self-hosted chatgpt",
     "description": "A web app that puts my local models, my vault, and tool calls behind a single chat interface. Same machine as Jarvis, different shape.",
-    "tags": ["next-js", "fastapi", "ollama", "supabase"],
+    "tags": [
+      "next-js",
+      "fastapi",
+      "ollama",
+      "supabase"
+    ],
     "accent": "#d2a8ff",
     "posts": [
       {
@@ -122,10 +132,29 @@
     "title": "Glasses",
     "category": "glasses",
     "subtitle": "jarvis on my face",
-    "description": "Ray-Ban Meta Gen 2 glasses talking to the Mac Studio through a thin iOS companion app. Push-to-talk voice, photo-as-context, sub-3s warm latency. Notes on the build.",
-    "tags": ["ray-ban-meta", "swift", "ios", "fastapi", "claude", "whisperkit"],
+    "description": "Ray-Ban Meta Gen 2 glasses talking to the Mac Studio through a thin iOS companion app. Hands-free voice, photo-as-context, hybrid local/cloud routing with a privacy gate, sub-3s warm latency. Notes on the build.",
+    "tags": [
+      "ray-ban-meta",
+      "swift",
+      "ios",
+      "fastapi",
+      "claude",
+      "whisperkit"
+    ],
     "accent": "#7ee787",
     "posts": [
+      {
+        "slug": "the-router-comes-back",
+        "title": "The router comes back",
+        "date": "2026-06-25",
+        "summary": "Phase 6.5 restores the router, the privacy gate, and brain RAG to the glasses path — ~60% of voice queries never leave the Mac. Plus the memory gap I shipped anyway, and v1.0.0."
+      },
+      {
+        "slug": "owning-the-voice-loop",
+        "title": "Owning the whole voice loop",
+        "date": "2026-05-27",
+        "summary": "TTS moves onto the phone, a Bluetooth speaker eats my phonemes, a model picker with OOM-risk badges, and a hands-free conversation mode. The Mac now contributes exactly one thing: intelligence."
+      },
       {
         "slug": "photos-as-context",
         "title": "Photos as context",
