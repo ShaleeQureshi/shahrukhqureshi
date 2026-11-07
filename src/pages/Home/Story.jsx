@@ -10,6 +10,7 @@ gsap.registerPlugin(MotionPathPlugin);
 const LAYOUTS = {
   wide: {
     viewBox: '0 0 820 380',
+    width: 820,
     box: { x: 430, y: 40, w: 220, h: 300, labelY: 60 },
     nodes: { glasses: [70, 110], phone: [270, 110], router: [540, 120], qwen: [540, 258], claude: [740, 86], discord: [70, 300] },
     paths: {
@@ -20,10 +21,11 @@ const LAYOUTS = {
       routerToClaude: 'M570 108 C 640 100, 660 86, 706 86',
       qwenToClaude: 'M576 250 C 660 240, 700 190, 718 118',
     },
-    lock: [612, 100], grade: [588, 260], bubble: [70, 44],
+    lock: [612, 100], grade: [588, 260],
   },
   tall: {
     viewBox: '0 -34 400 594',
+    width: 400,
     box: { x: 128, y: 140, w: 262, h: 390, labelY: 516 },
     nodes: { glasses: [66, 60], phone: [200, 60], router: [258, 212], qwen: [258, 400], claude: [335, 60], discord: [66, 212] },
     paths: {
@@ -34,7 +36,7 @@ const LAYOUTS = {
       routerToClaude: 'M290 194 C 330 180, 335 140, 335 96',
       qwenToClaude: 'M292 386 C 395 350, 410 200, 352 94',
     },
-    lock: [318, 150], grade: [304, 402], bubble: [80, -8],
+    lock: [318, 150], grade: [304, 402],
   },
 };
 
@@ -97,7 +99,7 @@ const SCENARIOS = [
       { say: 'The home brain takes the job: it reads the project, makes a safe copy, and writes the first version of the code itself.', path: 'routerToQwen', lit: ['router', 'qwen'], who: 'qwen', ms: 180000 },
       { say: 'When it hits something it cannot crack, that part is escalated to Claude. Everything else stays local.', path: 'qwenToClaude', lit: ['qwen', 'claude'], who: 'claude', ms: 240000 },
       { say: 'Claude’s work comes back and the tests run. The home brain grades the whole result like a strict teacher: pass, or try again.', path: 'qwenToClaude', reverse: true, lit: ['claude', 'qwen'], who: 'qwen', ms: 90000, grade: true },
-      { say: 'In the morning a summary is waiting on my phone: what passed, what did not, and what it cost.', path: 'routerToQwen', reverse: true, chain: ['discordToRouter'], lit: ['qwen', 'discord'], who: 'discord', ms: 2000, answer: '2 passed, 0 failed' },
+      { say: 'In the morning a summary is waiting on my phone: what passed, what did not, and what it cost.', path: 'routerToQwen', reverse: true, chain: ['discordToRouter'], lit: ['qwen', 'discord'], who: 'discord', ms: 2000, answer: '2 passed, 0 failed', at: 'discord' },
     ],
   },
 ];
@@ -139,7 +141,10 @@ function Scene({ layout }) {
     const caption = $('.story-caption');
     const title = $('.story-title');
     const bubble = $('.story-bubble');
+    const bubbleInner = $('.story-bubble-inner');
     const bubbleText = $('.story-bubble text');
+    const bubbleRect = $('.story-bubble rect');
+    const bubblePointer = $('.story-bubble path');
     const dot = $('.story-dot');
     const lock = $('.story-lock');
     const grade = $('.story-grade');
@@ -191,7 +196,7 @@ function Scene({ layout }) {
         title.textContent = sc.title;
         el.style.setProperty('--s-current', sc.colour);
         dots.forEach((d, i) => d.classList.toggle('is-on', i === si));
-        gsap.set(bubble, { opacity: 0 });
+        gsap.set(bubbleInner, { opacity: 0 });
         gsap.set([lock, grade], { opacity: 0, scale: 0.6 });
         total.v = 0;
         panel.total.textContent = '0.0 s';
@@ -219,8 +224,18 @@ function Scene({ layout }) {
         if (b.lock) tl.to(lock, { opacity: 1, scale: 1, duration: 0.35, ease: 'back.out(2)' }, '<');
         if (b.grade) tl.to(grade, { opacity: 1, scale: 1, duration: 0.35, ease: 'back.out(2)' }, '<');
         if (b.answer) {
-          tl.call(() => { bubbleText.textContent = b.answer; });
-          tl.fromTo(bubble, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
+          tl.call(() => {
+            // Size the bubble to its text and keep it inside the scene; point it at
+            // the node that receives the reply.
+            bubbleText.textContent = b.answer;
+            const w = bubbleText.getBBox().width;
+            const [nx, ny] = layout.nodes[b.at || 'glasses'];
+            const gx = Math.min(Math.max(nx - 56, 18), layout.width - w - 32);
+            gsap.set(bubble, { x: gx, y: ny - 66 });
+            bubbleRect.setAttribute('width', w + 28);
+            bubblePointer.setAttribute('d', `M${nx - gx - 6} 14 l6 10 6-10z`);
+          });
+          tl.fromTo(bubbleInner, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
         }
         tl.to({}, { duration: b.answer ? ANSWER_SECONDS : READ_SECONDS });
       });
@@ -278,10 +293,12 @@ function Scene({ layout }) {
             <g className="story-grade" transform={`translate(${layout.grade[0]} ${layout.grade[1]})`}>
               <circle r="13" /><path d="M-6 0l4 4 8-9" />
             </g>
-            <g className="story-bubble" transform={`translate(${layout.bubble[0]} ${layout.bubble[1]})`}>
-              <rect x="-66" y="-20" width="132" height="34" rx="17" />
-              <path d="M-4 14l4 10 6-10z" />
-              <text x="0" y="2" textAnchor="middle">Four.</text>
+            <g className="story-bubble">
+              <g className="story-bubble-inner">
+                <rect x="-14" y="-20" width="132" height="34" rx="17" />
+                <path d="M44 14l6 10 6-10z" />
+                <text x="0" y="2" textAnchor="start">Four.</text>
+              </g>
             </g>
             <g className="story-dot"><circle r="17" className="story-dot-halo" /><circle r="8" className="story-dot-core" /></g>
           </svg>
