@@ -19,9 +19,9 @@ export default function Home() {
 
       <p>
         The rule is simple: local models do everything they can. Qwen, running on
-        the box, answers quick questions, keeps anything private at home, and does
-        the groundwork and grading for coding jobs. Only the hardest work, like
-        writing the code itself, is escalated to Claude.
+        the box, answers quick questions, keeps anything private at home, and plans,
+        writes and tests code for my projects. Only the problems it cannot crack are
+        escalated to Claude, and Qwen checks that work too.
       </p>
       <p>
         Want more? <Link to="/showcase">The full walkthrough</Link> lets you try the

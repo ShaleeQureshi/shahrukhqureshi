@@ -38,61 +38,85 @@ const LAYOUTS = {
   },
 };
 
+const WHO = {
+  glasses: 'my glasses', phone: 'my phone', router: 'the box', qwen: 'home brain (Qwen)', claude: 'cloud helper (Claude)', discord: 'Discord',
+};
+
 // Every scenario is a list of beats: where the traveller goes, what the
-// caption says, who lights up. Seconds are compressed from the real system
-// (routing ~0.8 s, local answer ~0.2 s, Claude ~3 s) so a loop stays watchable.
+// caption says, who lights up, and the real time the step takes (ms, from
+// the 2026-10-18 benchmark). Travel is animated at constant speed; the
+// real numbers go in the side panel.
 const SCENARIOS = [
   {
     title: 'A quick question',
     colour: 'var(--s-home)',
+    cost: 'Free, runs on the box',
+    leaves: 'No',
+    note: 'Easy questions never need the cloud. Most of the time here is the phone writing down what I said.',
     beats: [
-      { say: '“What’s two plus two?”', from: 'glasses', path: 'glassesToPhone', lit: ['glasses', 'phone'] },
-      { say: 'My phone turns my voice into text and sends it to the box.', path: 'phoneToRouter', lit: ['phone', 'router'] },
-      { say: 'The box decides: easy. The home brain, a Qwen model running on the box, can answer this.', path: 'routerToQwen', lit: ['router', 'qwen'] },
-      { say: '“Four.” Back in my ear in about one second. Nothing left the house.', path: 'routerToQwen', reverse: true, chain: ['phoneToRouter', 'glassesToPhone'], lit: ['qwen', 'glasses'], answer: 'Four.' },
+      { say: '“What’s two plus two?”', from: 'glasses', path: 'glassesToPhone', lit: ['glasses', 'phone'], who: 'glasses', ms: 300 },
+      { say: 'My phone turns my voice into text on the phone itself and sends only the words to the box.', path: 'phoneToRouter', lit: ['phone', 'router'], who: 'phone', ms: 600 },
+      { say: 'The box decides: easy. The home brain, a Qwen model running on the box, can answer this.', path: 'routerToQwen', lit: ['router', 'qwen'], who: 'router', ms: 780 },
+      { say: '“Four.” The home brain answers in a fraction of a second and the reply is read into my ear.', path: 'routerToQwen', reverse: true, chain: ['phoneToRouter', 'glassesToPhone'], lit: ['qwen', 'glasses'], who: 'qwen', ms: 360, answer: 'Four.' },
     ],
   },
   {
     title: 'A private question',
     colour: 'var(--s-home)',
+    cost: 'Free, runs on the box',
+    leaves: 'No, locked',
+    note: 'Health, money, family and faith are answered at home even when the cloud would be smarter. The lock is a rule, not a preference.',
     beats: [
-      { say: '“What did my doctor say about my blood pressure?”', from: 'glasses', path: 'glassesToPhone', lit: ['glasses', 'phone'] },
-      { say: 'Only text leaves the phone, never the recording.', path: 'phoneToRouter', lit: ['phone', 'router'] },
-      { say: 'The box spots a health topic and locks the door to the cloud. Private things are answered at home, always.', path: 'routerToQwen', lit: ['router', 'qwen'], lock: true },
-      { say: 'The home brain reads my own notes and answers. The internet was never involved.', path: 'routerToQwen', reverse: true, chain: ['phoneToRouter', 'glassesToPhone'], lit: ['qwen', 'glasses'], answer: 'Normal on Tuesday.' },
+      { say: '“What did my doctor say about my blood pressure?”', from: 'glasses', path: 'glassesToPhone', lit: ['glasses', 'phone'], who: 'glasses', ms: 300 },
+      { say: 'Only text leaves the phone, never the recording.', path: 'phoneToRouter', lit: ['phone', 'router'], who: 'phone', ms: 600 },
+      { say: 'The box spots a health topic and locks the door to the cloud before any AI reads the question.', path: 'routerToQwen', lit: ['router', 'qwen'], who: 'router', ms: 20, lock: true },
+      { say: 'The home brain reads my own notes and answers. The internet was never involved.', path: 'routerToQwen', reverse: true, chain: ['phoneToRouter', 'glassesToPhone'], lit: ['qwen', 'glasses'], who: 'qwen', ms: 700, answer: 'Normal on Tuesday.' },
     ],
   },
   {
     title: 'A hard question',
     colour: 'var(--s-cloud)',
+    cost: 'One cloud call',
+    leaves: 'The question only',
+    note: 'The cloud helper is slower and costs a call, so the box uses it only when a tool or a bigger brain is needed.',
     beats: [
-      { say: '“What’s on my calendar today?”', from: 'glasses', path: 'glassesToPhone', lit: ['glasses', 'phone'] },
-      { say: 'The phone sends the words to the box.', path: 'phoneToRouter', lit: ['phone', 'router'] },
-      { say: 'This needs a tool and a bigger brain. The box sends it to the cloud helper, Claude, with anything private stripped out.', path: 'routerToClaude', lit: ['router', 'claude'] },
-      { say: 'Claude checks the calendar and writes a reply. The box reads it back to me, about four seconds in all.', path: 'routerToClaude', reverse: true, chain: ['phoneToRouter', 'glassesToPhone'], lit: ['claude', 'glasses'], answer: 'Career day at two.' },
+      { say: '“What’s on my calendar today?”', from: 'glasses', path: 'glassesToPhone', lit: ['glasses', 'phone'], who: 'glasses', ms: 300 },
+      { say: 'The phone sends the words to the box.', path: 'phoneToRouter', lit: ['phone', 'router'], who: 'phone', ms: 600 },
+      { say: 'This needs a calendar tool and a bigger brain. The box sends it to Claude with anything private stripped out.', path: 'routerToClaude', lit: ['router', 'claude'], who: 'router', ms: 780 },
+      { say: 'Claude checks the calendar and writes a reply. The box reads it back to me.', path: 'routerToClaude', reverse: true, chain: ['phoneToRouter', 'glassesToPhone'], lit: ['claude', 'glasses'], who: 'claude', ms: 3100, answer: 'Career day at two.' },
     ],
   },
   {
     title: 'Coding while I sleep',
     colour: 'var(--s-discord)',
+    cost: 'Mostly free; Claude only when needed',
+    leaves: 'Code for the hard parts',
+    note: 'Local Qwen models plan, write and test code on the box. Claude is brought in for the problems they cannot crack, and Qwen checks the result.',
     beats: [
-      { say: 'Before bed I message the box on Discord: “run orders-api”.', from: 'discord', path: 'discordToRouter', lit: ['discord', 'router'] },
-      { say: 'The home brain does the groundwork: it routes the job, reads the project, and prepares a safe copy to work in.', path: 'routerToQwen', lit: ['router', 'qwen'] },
-      { say: 'Only the hardest part, writing the code itself, is escalated to Claude. Local models do everything that does not need it.', path: 'qwenToClaude', lit: ['qwen', 'claude'] },
-      { say: 'Claude’s work comes back and the tests run. The home brain grades it like a strict teacher: pass, or try again.', path: 'qwenToClaude', reverse: true, lit: ['claude', 'qwen'], grade: true },
-      { say: 'In the morning a summary is waiting on my phone: what passed, what did not, and what it cost.', path: 'routerToQwen', reverse: true, chain: ['discordToRouter'], lit: ['qwen', 'discord'], answer: '2 passed, 0 failed' },
+      { say: 'Before bed I message the box on Discord: “run orders-api”.', from: 'discord', path: 'discordToRouter', lit: ['discord', 'router'], who: 'discord', ms: 1000 },
+      { say: 'The home brain takes the job: it reads the project, makes a safe copy, and writes the first version of the code itself.', path: 'routerToQwen', lit: ['router', 'qwen'], who: 'qwen', ms: 180000 },
+      { say: 'When it hits something it cannot crack, that part is escalated to Claude. Everything else stays local.', path: 'qwenToClaude', lit: ['qwen', 'claude'], who: 'claude', ms: 240000 },
+      { say: 'Claude’s work comes back and the tests run. The home brain grades the whole result like a strict teacher: pass, or try again.', path: 'qwenToClaude', reverse: true, lit: ['claude', 'qwen'], who: 'qwen', ms: 90000, grade: true },
+      { say: 'In the morning a summary is waiting on my phone: what passed, what did not, and what it cost.', path: 'routerToQwen', reverse: true, chain: ['discordToRouter'], lit: ['qwen', 'discord'], who: 'discord', ms: 2000, answer: '2 passed, 0 failed' },
     ],
   },
 ];
 
 const NODE_IDS = Object.keys(LAYOUTS.wide.nodes);
-const READ_SECONDS = 2.4;
-const ANSWER_SECONDS = 3.0;
+const READ_SECONDS = 2.6;
+const ANSWER_SECONDS = 3.2;
+const SPEED = 170; // svg units per second, constant along a route
+
+function fmt(ms) {
+  if (ms >= 60000) return `${Math.round(ms / 60000)} min`;
+  if (ms >= 1000) return `${(ms / 1000).toFixed(1)} s`;
+  return `${(ms / 1000).toFixed(2)} s`;
+}
 
 function useNarrow() {
-  const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 600px)').matches);
+  const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 700px)').matches);
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 600px)');
+    const mq = window.matchMedia('(max-width: 700px)');
     const update = () => setNarrow(mq.matches);
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
@@ -102,9 +126,7 @@ function useNarrow() {
 
 export default function Story() {
   const narrow = useNarrow();
-  const layout = narrow ? LAYOUTS.tall : LAYOUTS.wide;
-  // Remount the scene when the geometry changes so the timeline rebuilds.
-  return <Scene key={narrow ? 'tall' : 'wide'} layout={layout} />;
+  return <Scene key={narrow ? 'tall' : 'wide'} layout={narrow ? LAYOUTS.tall : LAYOUTS.wide} />;
 }
 
 function Scene({ layout }) {
@@ -113,32 +135,55 @@ function Scene({ layout }) {
   useEffect(() => {
     const el = root.current;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const caption = el.querySelector('.story-caption');
-    const title = el.querySelector('.story-title');
-    const bubble = el.querySelector('.story-bubble');
-    const bubbleText = el.querySelector('.story-bubble text');
-    const dot = el.querySelector('.story-dot');
-    const lock = el.querySelector('.story-lock');
-    const grade = el.querySelector('.story-grade');
+    const $ = (sel) => el.querySelector(sel);
+    const caption = $('.story-caption');
+    const title = $('.story-title');
+    const bubble = $('.story-bubble');
+    const bubbleText = $('.story-bubble text');
+    const dot = $('.story-dot');
+    const lock = $('.story-lock');
+    const grade = $('.story-grade');
     const dots = el.querySelectorAll('.story-progress i');
-    const pathEl = (name) => el.querySelector(`[data-path="${name}"]`);
+    const panel = { step: $('.sp-step'), who: $('.sp-who'), ms: $('.sp-ms'), total: $('.sp-total-v'), leaves: $('.sp-leaves'), cost: $('.sp-cost'), note: $('.sp-note') };
+    const pathEl = (name) => $(`[data-path="${name}"]`);
+    const total = { v: 0 };
 
-    const setLit = (ids) => {
-      NODE_IDS.forEach((id) => el.querySelector(`[data-node="${id}"]`).classList.toggle('is-lit', ids.includes(id)));
+    const setLit = (ids, active) => {
+      NODE_IDS.forEach((id) => {
+        const n = $(`[data-node="${id}"]`);
+        n.classList.toggle('is-lit', ids.includes(id));
+        n.classList.toggle('is-active', id === active);
+      });
     };
     const setCaption = (text) => {
-      gsap.killTweensOf(caption);
-      gsap.fromTo(caption, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, onStart: () => { caption.textContent = text; } });
+      gsap.timeline().to(caption, { opacity: 0, y: -4, duration: 0.18, ease: 'power1.in' })
+        .call(() => { caption.textContent = text; })
+        .to(caption, { opacity: 1, y: 0, duration: 0.32, ease: 'power2.out' });
     };
+    const setPanel = (sc, bi, b) => {
+      panel.step.textContent = `${bi + 1} of ${sc.beats.length}`;
+      panel.who.textContent = WHO[b.who];
+      panel.who.style.color = `var(--s-${b.who === 'router' ? 'box' : b.who})`;
+      panel.ms.textContent = fmt(b.ms);
+      panel.leaves.textContent = ['glasses', 'phone', 'discord'].includes(b.who) && bi < 2 ? 'Not yet' : sc.leaves;
+      panel.cost.textContent = sc.cost;
+      panel.note.textContent = sc.note;
+    };
+    const countTotal = (ms) => gsap.to(total, {
+      v: total.v + ms, duration: 0.8, ease: 'power1.out', onUpdate: () => { panel.total.textContent = fmt(total.v); },
+    });
 
     if (reduced) {
-      setLit(NODE_IDS);
+      setLit(NODE_IDS, null);
       title.textContent = 'How it works';
-      caption.textContent = 'A question travels glasses → phone → the box. Easy and private questions are answered at home by Qwen. Hard ones go to Claude. Overnight, local models prepare coding work and Claude writes the hardest parts.';
+      caption.textContent = 'A question travels glasses → phone → the box. Easy and private questions are answered at home by Qwen. Hard ones go to Claude. Overnight, Qwen writes and tests code on the box and Claude is brought in for the hardest problems.';
+      setPanel(SCENARIOS[0], 3, SCENARIOS[0].beats[3]);
+      panel.total.textContent = '2.0 s';
       return undefined;
     }
 
-    const master = gsap.timeline({ repeat: -1, repeatDelay: 0.6, defaults: { ease: 'power1.inOut' } });
+    gsap.ticker.lagSmoothing(500, 33);
+    const master = gsap.timeline({ repeat: -1, repeatDelay: 0.6 });
 
     SCENARIOS.forEach((sc, si) => {
       const tl = gsap.timeline();
@@ -148,32 +193,38 @@ function Scene({ layout }) {
         dots.forEach((d, i) => d.classList.toggle('is-on', i === si));
         gsap.set(bubble, { opacity: 0 });
         gsap.set([lock, grade], { opacity: 0, scale: 0.6 });
-        setLit([]);
+        total.v = 0;
+        panel.total.textContent = '0.0 s';
+        setLit([], null);
       });
       sc.beats.forEach((b, bi) => {
-        const paths = b.reverse ? [b.path, ...(b.chain || [])] : [b.path];
-        tl.call(() => { setCaption(b.say); setLit(b.lit); });
+        const names = b.reverse ? [b.path, ...(b.chain || [])] : [b.path];
+        tl.call(() => { setCaption(b.say); setLit(b.lit, b.who); setPanel(sc, bi, b); });
         if (bi === 0) {
           const [cx, cy] = layout.nodes[b.from];
-          tl.set(dot, { opacity: 1, x: 0, y: 0, attr: { cx, cy } });
-          tl.to(dot, { scale: 1.3, duration: 0.25, yoyo: true, repeat: 1, transformOrigin: 'center' });
+          tl.set(dot, { opacity: 1, x: cx, y: cy, scale: 1 });
+          tl.to(dot, { scale: 1.35, duration: 0.22, yoyo: true, repeat: 1, ease: 'sine.inOut' });
         }
-        paths.forEach((name) => {
-          const slow = name === 'routerToClaude' || name === 'qwenToClaude' || name === 'discordToRouter';
-          tl.to(dot, {
-            duration: slow ? 1.3 : 0.9,
-            motionPath: { path: pathEl(name), align: pathEl(name), alignOrigin: [0.5, 0.5], start: b.reverse ? 1 : 0, end: b.reverse ? 0 : 1 },
-          });
+        // One route = several path elements; ease in on the first, run at
+        // constant speed through the middle, ease out on the last, so the
+        // traveller never stops at a node it is only passing.
+        names.forEach((name, i) => {
+          const p = pathEl(name);
+          const dur = Math.max(0.45, p.getTotalLength() / SPEED);
+          const single = names.length === 1;
+          const ease = single ? 'power2.inOut' : i === 0 ? 'power2.in' : i === names.length - 1 ? 'power2.out' : 'none';
+          tl.to(dot, { duration: dur, ease, motionPath: { path: p, align: p, alignOrigin: [0.5, 0.5], start: b.reverse ? 1 : 0, end: b.reverse ? 0 : 1 } });
         });
-        if (b.lock) tl.to(lock, { opacity: 1, scale: 1, duration: 0.3, ease: 'back.out(2)' }, '<0.2');
-        if (b.grade) tl.to(grade, { opacity: 1, scale: 1, duration: 0.3, ease: 'back.out(2)' });
+        tl.call(() => { countTotal(b.ms); });
+        if (b.lock) tl.to(lock, { opacity: 1, scale: 1, duration: 0.35, ease: 'back.out(2)' }, '<');
+        if (b.grade) tl.to(grade, { opacity: 1, scale: 1, duration: 0.35, ease: 'back.out(2)' }, '<');
         if (b.answer) {
           tl.call(() => { bubbleText.textContent = b.answer; });
-          tl.to(bubble, { opacity: 1, duration: 0.3 });
+          tl.fromTo(bubble, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
         }
-        tl.to({}, { duration: b.answer ? ANSWER_SECONDS : READ_SECONDS }); // reading time
+        tl.to({}, { duration: b.answer ? ANSWER_SECONDS : READ_SECONDS });
       });
-      tl.to(dot, { opacity: 0, duration: 0.3 });
+      tl.to(dot, { opacity: 0, duration: 0.35, ease: 'power1.in' });
       master.add(tl);
     });
 
@@ -192,47 +243,61 @@ function Scene({ layout }) {
         <span className="story-title">How it works</span>
         <span className="story-progress" aria-hidden>{SCENARIOS.map((s) => <i key={s.title} />)}</span>
       </div>
-      <svg className="story-scene" viewBox={layout.viewBox} role="img" aria-hidden>
-        <rect x={box.x} y={box.y} width={box.w} height={box.h} rx="22" className="story-boxframe" />
-        <text x={box.x + box.w / 2} y={box.labelY} textAnchor="middle" className="story-boxlabel">the box · a Mac Studio at home</text>
+      <div className="story-body">
+        <div className="story-main">
+          <svg className="story-scene" viewBox={layout.viewBox} role="img" aria-hidden>
+            <rect x={box.x} y={box.y} width={box.w} height={box.h} rx="22" className="story-boxframe" />
+            <text x={box.x + box.w / 2} y={box.labelY} textAnchor="middle" className="story-boxlabel">the box · a Mac Studio at home</text>
 
-        {Object.entries(paths).map(([name, d]) => (
-          <path key={name} data-path={name} d={d} className="story-route" />
-        ))}
+            {Object.entries(paths).map(([name, d]) => (
+              <path key={name} data-path={name} d={d} className="story-route" />
+            ))}
 
-        <Node id="glasses" at={nodes.glasses} label="my glasses" colour="var(--s-glasses)">
-          <path d="M-18 0h36" /><rect x="-18" y="-6" width="15" height="12" rx="6" /><rect x="3" y="-6" width="15" height="12" rx="6" />
-        </Node>
-        <Node id="phone" at={nodes.phone} label="my phone" sub="voice → text" colour="var(--s-phone)">
-          <rect x="-9" y="-16" width="18" height="32" rx="4" /><path d="M-3 -12h6" />
-        </Node>
-        <Node id="router" at={nodes.router} label="the box decides" sub="easy? private? hard?" colour="var(--s-box)">
-          <path d="M0 14V0M0 0L-11 -11M0 0L11 -11" /><circle cx="-11" cy="-11" r="3" /><circle cx="11" cy="-11" r="3" />
-        </Node>
-        <Node id="qwen" at={nodes.qwen} label="home brain · Qwen" sub="fast, free, never online" colour="var(--s-home)">
-          <path d="M-13 3 L0 -10 L13 3" /><path d="M-9 1v11h18V1" />
-        </Node>
-        <Node id="claude" at={nodes.claude} label="cloud helper · Claude" sub="for the hardest work" colour="var(--s-cloud)">
-          <path d="M-12 8h22a7 7 0 0 0 1-14 9 9 0 0 0-17-2 7.5 7.5 0 0 0-6 16Z" />
-        </Node>
-        <Node id="discord" at={nodes.discord} label="Discord" sub="a chat on my phone" colour="var(--s-discord)">
-          <path d="M-14 -6c4-2 8-3 14-3s10 1 14 3l3 16c-4 3-8 4-11 4l-2-3c-3 1-5 1-8 0l-2 3c-3 0-7-1-11-4Z" /><circle cx="-5" cy="2" r="2" fill="currentColor" stroke="none" /><circle cx="5" cy="2" r="2" fill="currentColor" stroke="none" />
-        </Node>
+            <Node id="glasses" at={nodes.glasses} label="my glasses" colour="var(--s-glasses)">
+              <path d="M-18 0h36" /><rect x="-18" y="-6" width="15" height="12" rx="6" /><rect x="3" y="-6" width="15" height="12" rx="6" />
+            </Node>
+            <Node id="phone" at={nodes.phone} label="my phone" sub="voice → text" colour="var(--s-phone)">
+              <rect x="-9" y="-16" width="18" height="32" rx="4" /><path d="M-3 -12h6" />
+            </Node>
+            <Node id="router" at={nodes.router} label="the box decides" sub="easy? private? hard?" colour="var(--s-box)">
+              <path d="M0 14V0M0 0L-11 -11M0 0L11 -11" /><circle cx="-11" cy="-11" r="3" /><circle cx="11" cy="-11" r="3" />
+            </Node>
+            <Node id="qwen" at={nodes.qwen} label="home brain · Qwen" sub="answers, writes code, grades" colour="var(--s-home)">
+              <path d="M-13 3 L0 -10 L13 3" /><path d="M-9 1v11h18V1" />
+            </Node>
+            <Node id="claude" at={nodes.claude} label="cloud helper · Claude" sub="for the hardest problems" colour="var(--s-cloud)">
+              <path d="M-12 8h22a7 7 0 0 0 1-14 9 9 0 0 0-17-2 7.5 7.5 0 0 0-6 16Z" />
+            </Node>
+            <Node id="discord" at={nodes.discord} label="Discord" sub="a chat on my phone" colour="var(--s-discord)">
+              <path d="M-14 -6c4-2 8-3 14-3s10 1 14 3l3 16c-4 3-8 4-11 4l-2-3c-3 1-5 1-8 0l-2 3c-3 0-7-1-11-4Z" /><circle cx="-5" cy="2" r="2" fill="currentColor" stroke="none" /><circle cx="5" cy="2" r="2" fill="currentColor" stroke="none" />
+            </Node>
 
-        <g className="story-lock" transform={`translate(${layout.lock[0]} ${layout.lock[1]})`}>
-          <rect x="-11" y="-6" width="22" height="18" rx="4" /><path d="M-6 -6v-5a6 6 0 0 1 12 0v5" />
-        </g>
-        <g className="story-grade" transform={`translate(${layout.grade[0]} ${layout.grade[1]})`}>
-          <circle r="13" /><path d="M-6 0l4 4 8-9" />
-        </g>
-        <g className="story-bubble" transform={`translate(${layout.bubble[0]} ${layout.bubble[1]})`}>
-          <rect x="-66" y="-20" width="132" height="34" rx="17" />
-          <path d="M-4 14l4 10 6-10z" />
-          <text x="0" y="2" textAnchor="middle">Four.</text>
-        </g>
-        <circle className="story-dot" cx={nodes.glasses[0]} cy={nodes.glasses[1]} r="9" />
-      </svg>
-      <figcaption className="story-caption">Watch a question travel through the system.</figcaption>
+            <g className="story-lock" transform={`translate(${layout.lock[0]} ${layout.lock[1]})`}>
+              <rect x="-11" y="-6" width="22" height="18" rx="4" /><path d="M-6 -6v-5a6 6 0 0 1 12 0v5" />
+            </g>
+            <g className="story-grade" transform={`translate(${layout.grade[0]} ${layout.grade[1]})`}>
+              <circle r="13" /><path d="M-6 0l4 4 8-9" />
+            </g>
+            <g className="story-bubble" transform={`translate(${layout.bubble[0]} ${layout.bubble[1]})`}>
+              <rect x="-66" y="-20" width="132" height="34" rx="17" />
+              <path d="M-4 14l4 10 6-10z" />
+              <text x="0" y="2" textAnchor="middle">Four.</text>
+            </g>
+            <g className="story-dot"><circle r="17" className="story-dot-halo" /><circle r="8" className="story-dot-core" /></g>
+          </svg>
+          <figcaption className="story-caption">Watch a question travel through the system.</figcaption>
+        </div>
+
+        <aside className="story-panel" aria-live="polite">
+          <div className="sp-row"><span>Step</span><strong className="sp-step">–</strong></div>
+          <div className="sp-row"><span>Working now</span><strong className="sp-who">–</strong></div>
+          <div className="sp-row"><span>This step, real time</span><strong className="sp-ms">–</strong></div>
+          <div className="sp-row sp-total"><span>Time so far</span><strong className="sp-total-v">0.0 s</strong></div>
+          <div className="sp-row"><span>Leaves the house?</span><strong className="sp-leaves">–</strong></div>
+          <div className="sp-row"><span>Cost</span><strong className="sp-cost">–</strong></div>
+          <p className="sp-note">Times are measured on the real system, not made up for the animation.</p>
+        </aside>
+      </div>
     </figure>
   );
 }
