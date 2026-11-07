@@ -39,6 +39,7 @@ export function TopBar({ active, path = '~/projects' }) {
         <Link to="/projects" className={active === 'projects' ? 'active' : ''}>work</Link>
         <Link to="/server" className={active === 'server' ? 'active' : ''}>server</Link>
         <Link to="/glasses" className={active === 'glasses' ? 'active' : ''}>glasses</Link>
+        <Link to="/showcase" className={active === 'showcase' ? 'active' : ''}>how it works</Link>
         <Link to="/contact" className={active === 'contact' ? 'active' : ''}>contact</Link>
       </nav>
     </div>

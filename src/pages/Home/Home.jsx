@@ -13,6 +13,10 @@ export default function Home() {
         running on consumer hardware.
       </p>
       <p>
+        New here? <Link to="/showcase">How it works</Link> explains Jarvis and the glasses
+        with no jargon, in about five minutes.
+      </p>
+      <p>
         See <Link to="/projects">recent work</Link> or read
         a bit <Link to="/about">about me</Link>.
       </p>

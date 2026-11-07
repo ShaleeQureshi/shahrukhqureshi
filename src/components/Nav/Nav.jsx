@@ -20,6 +20,9 @@ export default function Nav() {
       <NavLink to="/glasses" className={({ isActive }) => (isActive ? 'active' : '')}>
         glasses
       </NavLink>
+      <NavLink to="/showcase" className={({ isActive }) => (isActive ? 'active' : '')}>
+        how it works
+      </NavLink>
       <NavLink to="/contact" className={({ isActive }) => (isActive ? 'active' : '')}>
         contact
       </NavLink>
