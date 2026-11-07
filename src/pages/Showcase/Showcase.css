@@ -29,6 +29,8 @@
 
 .sc * { box-sizing: border-box; }
 .sc a { color: var(--c-home); }
+.sc a.sc-btn, .sc a.sc-play { color: #fff; }
+.sc a.sc-btn-quiet, .sc a.sc-brand { color: var(--ink); }
 .sc h1, .sc h2, .sc h3 { font-family: var(--display); font-weight: 600; letter-spacing: -0.01em; margin: 0; }
 .sc h2 { font-size: clamp(28px, 4vw, 40px); line-height: 1.12; }
 .sc h3 { font-size: 22px; line-height: 1.25; }
