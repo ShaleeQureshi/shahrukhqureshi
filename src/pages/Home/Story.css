@@ -58,7 +58,7 @@
 .story-grade circle { stroke: none; }
 .story-grade path { fill: none; }
 
-.story-bubble { opacity: 0; }
+.story-bubble-inner { opacity: 0; }
 .story-bubble rect, .story-bubble path { fill: var(--s-ink); }
 .story-bubble text { font-size: 13px; font-weight: 600; fill: #fff; }
 
